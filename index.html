@@ -2,9 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Phiếu Bán Hàng - Sửa Lỗi Tìm Kiếm SĐT</title>
+    <title>Phiếu Bán Hàng - Định Dạng SĐT xxxx.xxx.xxx</title>
     
-    <!-- Thư viện đọc file Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
@@ -43,6 +42,14 @@
             margin-bottom: 12px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .upload-left {
+            display: flex;
+            align-items: center;
             gap: 10px;
         }
         
@@ -50,6 +57,21 @@
             font-weight: bold;
             color: #276749;
             font-size: 0.9em;
+        }
+        
+        .btn-clear-storage {
+            background-color: #e53e3e;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .btn-clear-storage:hover {
+            background-color: #c53030;
         }
         
         .manual-customer-section {
@@ -357,15 +379,22 @@
             background-color: #2b6cb0;
         }
         
+        /* ĐỊNH DẠNG RIÊNG CHO MÁY IN KHỔ GIẤY A5 */
         @media print {
+            @page {
+                size: A5 portrait;
+                margin: 5mm;
+            }
             body {
                 background-color: #fff;
-                margin-top: 30px;
+                margin: 0;
+                font-size: 12px;
             }
             .invoice-box {
                 border: none;
                 box-shadow: none;
                 padding: 0;
+                max-width: 100% !important;
             }
             .config-section, #searchPhone, .print-button-container, .btn-action-container, .col-delete, .col-delete-header {
                 display: none !important;
@@ -385,6 +414,12 @@
                 width: auto;
                 text-align: center;
             }
+            .payment-container {
+                margin-top: 15px;
+            }
+            .signature-space {
+                height: 50px;
+            }
         }
     </style>
 </head>
@@ -392,30 +427,31 @@
 
 <div class="invoice-box">
 
-    <!-- KHỐI QUẢN LÝ DỮ LIỆU KHÁCH HÀNG -->
     <div class="config-section">
         <div class="upload-section">
-            <label for="excelFile">📂 Cách 1: Nạp file khách hàng (Excel):</label>
-            <input type="file" id="excelFile" accept=".xlsx, .xls" onchange="docFileExcel(this)">
-            <span id="statusExcel" style="color: #38a169; font-weight: bold; font-size: 0.9em;"></span>
+            <div class="upload-left">
+                <label for="excelFile">📂 Cách 1: Nạp file khách hàng (Excel):</label>
+                <input type="file" id="excelFile" accept=".xlsx, .xls" onchange="docFileExcel(this)">
+                <span id="statusExcel" style="color: #38a169; font-weight: bold; font-size: 0.9em;"></span>
+            </div>
+            <button class="btn-clear-storage" onclick="xoaSachLocalStorage()">🗑️ Xóa sạch bộ nhớ</button>
         </div>
         
         <div class="manual-customer-section">
             <h4>✍️ Cách 2: Nhập trực tiếp khách hàng mới vào danh sách:</h4>
             <div class="manual-input-group">
                 <input type="text" id="inputTenKH" placeholder="Tên khách hàng" style="width: 180px;">
-                <input type="text" id="inputSdtKH" placeholder="Số điện thoại" style="width: 120px;">
-                <input type="text" id="inputDiachiKH" placeholder="Địa chỉ giao hàng" style="width: 250px;">
+                <input type="text" id="inputSdtKH" placeholder="Số điện thoại" style="width: 130px;" oninput="xuLyFormatInputSdt(this)" maxlength="12">
+                <input type="text" id="inputDiachiKH" placeholder="Địa chỉ giao hàng" style="width: 240px;">
                 <button class="btn-save-customer" onclick="themKhachHangTructTiep()">➕ Thêm vào danh sách</button>
             </div>
         </div>
     </div>
 
     <div class="print-button-container">
-        <button class="btn-print" onclick="window.print()">🖨️ In Hóa Đơn</button>
+        <button class="btn-print" onclick="window.print()">🖨️ In Hóa Đơn (Khổ A5)</button>
     </div>
 
-    <!-- Thông tin công ty -->
     <div class="header-section">
         <div class="company-info">
             <strong>Cty TNHH TMDV Nhím Kon - Nhà Phân Phối Lavie Hùng Liên</strong><br>
@@ -429,15 +465,13 @@
         </div>
     </div>
 
-    <!-- Thông tin khách hàng hiển thị -->
     <div class="client-info">
         <div class="client-row">
             <label>Khách Hàng:</label>
             <select id="selectKhachHang" onchange="capNhatThongTin()">
                 <option value="">-- Chưa có dữ liệu / Hãy chọn file --</option>
             </select>
-            <!-- Ô TÌM KIẾM ĐÃ ĐƯỢC CẢI TIẾN ĐỂ GÕ TÌM LIÊN TỤC -->
-            <input type="text" id="searchPhone" placeholder="Gõ số đuôi ĐT để tìm nhanh..." oninput="timKiemKhachHang()">
+            <input type="text" id="searchPhone" placeholder="Gõ số đuôi để tìm nhanh..." oninput="xuLyFormatInputSdt(this); timKiemKhachHang();" maxlength="12">
         </div>
         <div class="client-row">
             <label>Địa Chỉ:</label>
@@ -543,6 +577,45 @@
 <script>
     let danhSachKhachHang = [];
 
+    // HÀM MỚI: Chỉ nhận số và tự động định dạng thành xxxx.xxx.xxx khi gõ
+    function formatSdtChuoi(rawText) {
+        // Loại bỏ mọi ký tự không phải là số
+        let chuoiSo = rawText.replace(/\D/g, '');
+        
+        // Thêm dấu chấm theo đúng quy luật xxxx.xxx.xxx
+        if (chuoiSo.length <= 4) {
+            return chuoiSo;
+        } else if (chuoiSo.length <= 7) {
+            return chuoiSo.slice(0, 4) + '.' + chuoiSo.slice(4);
+        } else {
+            return chuoiSo.slice(0, 4) + '.' + chuoiSo.slice(4, 7) + '.' + chuoiSo.slice(7, 10);
+        }
+    }
+
+    // Kích hoạt định dạng trực tiếp trên ô Input
+    function xuLyFormatInputSdt(inputElement) {
+        inputElement.value = formatSdtChuoi(inputElement.value);
+    }
+
+    function taiDuLieuTuLocalStorage() {
+        const duLieuLuuTru = localStorage.getItem("db_khach_hang");
+        if (duLieuLuuTru) {
+            danhSachKhachHang = JSON.parse(duLieuLuuTru);
+            document.getElementById("statusExcel").innerText = `♻️ Tự động nạp lại ${danhSachKhachHang.length} khách hàng từ bộ nhớ máy!`;
+            capNhatDuLieuVaoSelect();
+        }
+    }
+
+    function xoaSachLocalStorage() {
+        if(confirm("Bạn có chắc chắn muốn xóa toàn bộ danh sách khách hàng hiện tại không?")) {
+            localStorage.removeItem("db_khach_hang");
+            danhSachKhachHang = [];
+            capNhatDuLieuVaoSelect();
+            capNhatThongTin();
+            document.getElementById("statusExcel").innerText = "🧹 Đã xóa sạch bộ nhớ khách hàng.";
+        }
+    }
+
     function docFileExcel(input) {
         const file = input.files[0];
         if (!file) return;
@@ -557,12 +630,14 @@
             
             danhSachKhachHang = json.map(item => {
                 let tenGoc = item["ten"] || item["Họ tên"] || item["Khách hàng"] || "";
-                // Sử dụng replace(/\s+/g, '') để triệt tiêu toàn bộ khoảng trắng thừa trong SĐT
-                let sdtGoc = String(item["Số điện thoại"] || item["Điện thoại"] || item["sdt"] || item["SĐT"] || "").replace(/\s+/g, '').trim();
+                let sdtTho = String(item["Số điện thoại"] || item["Điện thoại"] || item["sdt"] || item["SĐT"] || "");
+                
+                // Chuẩn hóa số điện thoại Excel về định dạng dấu chấm đẹp xxxx.xxx.xxx
+                let sdtDinhDang = formatSdtChuoi(sdtTho);
                 let diaChiGoc = item["Địa chỉ"] || item["diachi"] || item["Địa Chỉ"] || item["dc"] || "Không rõ địa chỉ";
                 
-                if (!tenGoc && sdtGoc) {
-                    tenGoc = "SĐT: " + sdtGoc;
+                if (!tenGoc && sdtDinhDang) {
+                    tenGoc = "SĐT: " + sdtDinhDang;
                 } else if (!tenGoc) {
                     tenGoc = "Khách hàng mới";
                 }
@@ -570,12 +645,13 @@
                 return {
                     ten: tenGoc,
                     dc: diaChiGoc,
-                    sdt: sdtGoc
+                    sdt: sdtDinhDang
                 };
             });
             
             if(danhSachKhachHang.length > 0) {
-                document.getElementById("statusExcel").innerText = `✅ Đã nạp thành công ${danhSachKhachHang.length} khách hàng!`;
+                localStorage.setItem("db_khach_hang", JSON.stringify(danhSachKhachHang));
+                document.getElementById("statusExcel").innerText = `✅ Đã nạp & định dạng thành công ${danhSachKhachHang.length} khách hàng!`;
                 capNhatDuLieuVaoSelect();
             } else {
                 alert("Không đọc được dữ liệu phù hợp từ file Excel!");
@@ -586,8 +662,7 @@
 
     function themKhachHangTructTiep() {
         const txtTen = document.getElementById("inputTenKH").value.trim();
-        // Xóa khoảng trắng thừa khi nhập tay
-        const txtSdt = document.getElementById("inputSdtKH").value.replace(/\s+/g, '').trim();
+        const txtSdt = document.getElementById("inputSdtKH").value.trim(); // Đã được format sẵn lúc gõ
         const txtDiaChi = document.getElementById("inputDiachiKH").value.trim();
         
         if (!txtTen || !txtSdt || !txtDiaChi) {
@@ -602,6 +677,7 @@
         };
         
         danhSachKhachHang.push(khachHangMoi);
+        localStorage.setItem("db_khach_hang", JSON.stringify(danhSachKhachHang));
         capNhatDuLieuVaoSelect();
         
         const select = document.getElementById("selectKhachHang");
@@ -638,21 +714,24 @@
         }
     }
 
-    // HÀM TÌM KIẾM MỚI: Tìm kiếm liên tục và thông minh hơn
+    // SỬA HÀM TÌM KIẾM: Loại bỏ dấu chấm tạm thời khi đối chiếu để tìm đuôi mượt mà nhất
     function timKiemKhachHang() {
-        const val = document.getElementById("searchPhone").value.replace(/\s+/g, '').trim();
+        let val = document.getElementById("searchPhone").value.replace(/\D/g, ''); // Bỏ hết dấu chấm để lấy chuỗi số thô
         const select = document.getElementById("selectKhachHang");
         
-        if(danhSachKhachHang.length === 0) {
-            return; // Chưa có dữ liệu thì không làm gì
+        if(danhSachKhachHang.length === 0 || val.length < 3) {
+            return; 
         }
         
-        if(val.length >= 3) { // Chỉ cần gõ từ 3 số trở lên là hệ thống tự dò ngay
-            const index = danhSachKhachHang.findIndex(kh => kh.sdt.endsWith(val));
-            if(index !== -1) {
-                select.value = index;
-                capNhatThongTin();
-            }
+        // Tìm kiếm thông minh bằng cách bỏ mọi dấu chấm trong database để so khớp chuỗi số đuôi bạn nhập
+        const index = danhSachKhachHang.findIndex(kh => {
+            let sdtThoTrongDb = kh.sdt.replace(/\D/g, '');
+            return sdtThoTrongDb.endsWith(val);
+        });
+        
+        if(index !== -1) {
+            select.value = index;
+            capNhatThongTin();
         }
     }
 
@@ -733,6 +812,7 @@
 
     window.onload = function() {
         tinhToanToanBo();
+        taiDuLieuTuLocalStorage();
     };
 </script>
 
