@@ -1,35 +1,515 @@
-<!DOCTYPE html><html lang="vi"><head>    <meta charset="UTF-8">    <title>Phiếu Bán Hàng - Nhà Phân Phối Lavie Hùng Liên</title>    <style>        /* Quy định layout: Cách mép trên 30px, cách biên 3px */        body {            font-family: 'Segoe UI', Arial, sans-serif;            margin-top: 30px;            margin-left: 3px;            margin-right: 3px;            color: #333;            background-color: #f9f9f9;        }                .invoice-box {             max-width: 800px;             margin: auto;             border: 1px solid #e2e8f0;             padding: 30px;             background: #fff;            box-shadow: 0 4px 6px rgba(0,0,0,0.05);            border-radius: 8px;        }                /* Header và Thông tin công ty */        .header-section {             display: flex;             justify-content: space-between;             align-items: flex-start;            border-bottom: 2px solid #1a365d;             padding-bottom: 15px;         }        .company-info {             font-size: 0.95em;             line-height: 1.5;        }        .company-info strong {            color: #1a365d;            font-size: 1.1em;        }        .title-area {             text-align: right;         }        .title-area h3 {            margin: 0 0 5px 0;            color: #1a365d;            font-size: 1.6em;            letter-spacing: 1px;        }        .title-area p {            margin: 0;            font-style: italic;            color: #666;            font-size: 0.9em;        }                /* Thông tin khách hàng */        .client-info {            margin: 25px 0;            background: #f8fafc;            padding: 15px;            border-radius: 6px;            border-left: 4px solid #3182ce;        }        .client-row {            margin-bottom: 8px;            display: flex;            align-items: center;        }        .client-row:last-child {            margin-bottom: 0;        }        .client-row label {            width: 120px;            font-weight: bold;            color: #4a5568;        }        .client-row select, .client-row input[type="text"] {            padding: 6px 10px;            border: 1px solid #cbd5e0;            border-radius: 4px;            font-family: inherit;            outline: none;            background: #fff;            font-size: 1em;        }        .client-row select {             min-width: 220px;             margin-right: 15px;             cursor: pointer;        }        .client-row input[type="text"] {             width: 180px;             border: 1px solid #3182ce;             background: #ebf8ff;         }        .client-row span {            color: #2d3748;            font-weight: 500;        }                /* Bảng hàng hóa */        table {             width: 100%;             border-collapse: collapse;             margin: 25px 0;         }        th {             background-color: #1a365d;            color: #fff;            font-weight: 600;            text-transform: uppercase;            font-size: 0.90em;            border: 1px solid #1a365d;             padding: 12px 10px;             text-align: center;         }        td {             border: 1px solid #e2e8f0;             padding: 12px 10px;             text-align: center;             color: #2d3748;        }        tr:nth-child(even) td {            background-color: #f8fafc;        }        td:nth-child(2) { text-align: left; font-weight: 500; }        td:nth-child(5), td:nth-child(6) { text-align: right; }                table input[type="number"] {            width: 60px;            padding: 5px;            border: 1px solid #cbd5e0;            border-radius: 4px;            text-align: center;            font-family: inherit;        }                /* Khu vực ký và Ngân hàng */        .footer-section {             display: flex;             justify-content: space-between;             margin-top: 30px;         }        .signature-box {             width: 45%;             text-align: center;             font-size: 0.95em;        }        .signature-box em {            font-size: 0.85em;            color: #718096;            display: block;            margin-top: 4px;        }        .signature-space {            height: 80px;        }                /* Khối thanh toán + QR Container */        .payment-container {            display: flex;            align-items: stretch;            margin-top: 35px;            border-radius: 6px;            overflow: hidden;            border: 1px solid #1a365d;        }        .bank-info {             background: #1a365d;             color: #fff;             padding: 20px;             flex: 1;            line-height: 1.7;        }        .bank-info strong {            font-size: 1.1em;            color: #fbd38d;        }        .qr-box {            background: #fff;            padding: 10px;            display: flex;            justify-content: center;            align-items: center;            border-left: 1px solid #e2e8f0;            width: 140px;        }        .qr-box img {            max-width: 100%;            height: auto;        }
-
-        /* Nút bấm in ấn */        .print-button-container {            text-align: right;            margin-bottom: 15px;        }        .btn-print {            background-color: #3182ce;            color: white;            padding: 10px 24px;            border: none;            border-radius: 4px;            font-size: 1em;            cursor: pointer;            font-weight: bold;            box-shadow: 0 2px 4px rgba(0,0,0,0.1);        }        .btn-print:hover { background-color: #2b6cb0; }
-
-        /* Cấu hình ẩn các thành phần thừa khi ra lệnh in máy in */        @media print {            body { background-color: #fff; margin-top: 30px; }            .invoice-box { border: none; box-shadow: none; padding: 0; }            #searchPhone, .print-button-container { display: none !important; }            .client-row select { border: none; background: transparent; -webkit-appearance: none; -moz-appearance: none; appearance: none; padding: 0; }        }    </style></head><body>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Phiếu Bán Hàng - Tự Động Tính Toán</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin-top: 30px;
+            margin-left: 3px;
+            margin-right: 3px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        
+        .invoice-box {
+            max-width: 850px;
+            margin: auto;
+            border: 1px solid #e2e8f0;
+            padding: 30px;
+            background: #fff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-radius: 8px;
+        }
+        
+        .upload-section {
+            background: #f0fff4;
+            border: 1px dashed #38a169;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .upload-section label {
+            font-weight: bold;
+            color: #276749;
+            font-size: 0.9em;
+        }
+        
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #1a365d;
+            padding-bottom: 15px;
+        }
+        
+        .company-info {
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        
+        .company-info strong {
+            color: #1a365d;
+            font-size: 1.1em;
+        }
+        
+        .title-area {
+            text-align: right;
+        }
+        
+        .title-area h3 {
+            margin: 0 0 5px 0;
+            color: #1a365d;
+            font-size: 1.6em;
+            letter-spacing: 1px;
+        }
+        
+        .title-area p {
+            margin: 0;
+            font-style: italic;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .client-info {
+            margin: 25px 0;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #3182ce;
+        }
+        
+        .client-row {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .client-row label {
+            width: 120px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+        
+        .client-row select, .client-row input[type="text"] {
+            padding: 6px 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-family: inherit;
+            outline: none;
+            background: #fff;
+            font-size: 1em;
+        }
+        
+        .client-row select {
+            min-width: 220px;
+            cursor: pointer;
+        }
+        
+        .client-row input[type="text"] {
+            width: 180px;
+            border: 1px solid #3182ce;
+            background: #ebf8ff;
+        }
+        
+        .client-row span {
+            color: #2d3748;
+            font-weight: 500;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0 10px 0;
+        }
+        
+        th {
+            background-color: #1a365d;
+            color: #fff;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            border: 1px solid #1a365d;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: center;
+            color: #2d3748;
+        }
+        
+        td:nth-child(2) {
+            text-align: left;
+        }
+        
+        td:nth-child(6), .total-amount {
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        table input, table select {
+            padding: 6px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        
+        table input[type="number"] {
+            width: 70px;
+            text-align: center;
+        }
+        
+        table select {
+            width: 100%;
+            cursor: pointer;
+            background: #fff;
+        }
+        
+        .txt-dv {
+            width: 70px;
+            text-align: center;
+        }
+        
+        .btn-action-container {
+            margin-bottom: 20px;
+        }
+        
+        .btn-add-row {
+            background-color: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .btn-add-row:hover {
+            background-color: #218838;
+        }
+        
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+        
+        .total-row td {
+            background-color: #edf2f7;
+            font-size: 1.05em;
+        }
+        
+        .footer-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .signature-box {
+            width: 45%;
+            text-align: center;
+            font-size: 0.95em;
+        }
+        
+        .signature-box em {
+            font-size: 0.85em;
+            color: #718096;
+            display: block;
+            margin-top: 4px;
+        }
+        
+        .signature-space {
+            height: 80px;
+        }
+        
+        .payment-container {
+            display: flex;
+            align-items: stretch;
+            margin-top: 35px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #1a365d;
+        }
+        
+        .bank-info {
+            background: #1a365d;
+            color: #fff;
+            padding: 20px;
+            flex: 1;
+            line-height: 1.7;
+        }
+        
+        .bank-info strong {
+            font-size: 1.1em;
+            color: #fbd38d;
+        }
+        
+        .qr-box {
+            background: #fff;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-left: 1px solid #e2e8f0;
+            width: 140px;
+        }
+        
+        .qr-box img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .print-button-container {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+        
+        .btn-print {
+            background-color: #3182ce;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-print:hover {
+            background-color: #2b6cb0;
+        }
+        
+        @media print {
+            body {
+                background-color: #fff;
+                margin-top: 30px;
+            }
+            .invoice-box {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+            }
+            #searchPhone, .print-button-container, .upload-section, .btn-action-container, .col-delete, .col-delete-header {
+                display: none !important;
+            }
+            select, input {
+                border: none !important;
+                background: transparent !important;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+                padding: 0 !important;
+                font-size: 1em;
+                font-weight: bold;
+                color: #000;
+            }
+            table input[type="number"] {
+                width: auto;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
 
 <div class="invoice-box">
-    <div class="print-button-container">        <button class="btn-print" onclick="window.print()">🖨️ In Hóa Đơn</button>    </div>
 
-        <div class="header-section">        <div class="company-info">            <strong>Cty TNHH TMDV Nhím Kon - Nhà Phân Phối Lavie Hùng Liên</strong><br>            Địa chỉ: 2D Khâm Thiên, Đống Đa, HN<br>            Điện thoại: (024).666066.18 - Hotline: 0981.446.851<br>            Website: nhimkon.com        </div>        <div class="title-area">            <h3>PHIẾU BÁN HÀNG</h3>            <p>Hà Nội, ngày: 28/06/2026</p>        </div>    </div>
+    <div class="upload-section">
+        <label for="excelFile">📂 Nạp danh sách khách hàng (Excel):</label>
+        <input type="file" id="excelFile" accept=".xlsx, .xls" onchange="docFileExcel(this)">
+        <span id="statusExcel" style="color: #38a169; font-weight: bold; font-size: 0.9em;"></span>
+    </div>
 
-        <div class="client-info">        <div class="client-row">            <label>Khách Hàng:</label>            <select id="selectKhachHang" onchange="capNhatThongTin()">                <option value="">-- Chọn khách hàng --</option>            </select>            <input type="text" id="searchPhone" placeholder="Gõ 6 số cuối ĐT để tìm..." oninput="timKiemKhachHang()">        </div>        <div class="client-row">            <label>Địa Chỉ:</label>            <span id="diachi">...</span>        </div>        <div class="client-row">            <label>Điện thoại:</label>            <span id="sdt">...</span>        </div>    </div>
+    <div class="print-button-container">
+        <button class="btn-print" onclick="window.print()">🖨️ In Hóa Đơn</button>
+    </div>
 
-        <table>        <thead>            <tr>                <th style="width: 8%;">STT</th>                <th>TÊN HÀNG HÓA</th>                <th style="width: 12%;">ĐV</th>                <th style="width: 12%;">SL</th>                <th style="width: 18%;">ĐƠN GIÁ</th>                <th style="width: 18%;">THÀNH TIỀN</th>            </tr>        </thead>        <tbody>            <tr>                <td>1</td>                <td>VIVA VÒI</td>                <td>BÌNH</td>                <td><input type="number" value="1"></td>                <td>73.000</td>                <td id="thanhTienRow">73.000</td>             </tr>        </tbody>    </table>
+    <div class="header-section">
+        <div class="company-info">
+            <strong>Cty TNHH TMDV Nhím Kon - Nhà Phân Phối Lavie Hùng Liên</strong><br>
+            Địa chỉ: 2D Khâm Thiên, Đống Đa, HN<br>
+            Điện thoại: (024).666066.18 - Hotline: 0981.446.851<br>
+            Website: nhimkon.com
+        </div>
+        <div class="title-area">
+            <h3>PHIẾU BÁN HÀNG</h3>
+            <p>Hà Nội, ngày: 28/06/2026</p>
+        </div>
+    </div>
 
-        <div class="footer-section">        <div class="signature-box">            <strong>Người lập phiếu</strong>            <em>(Ký, ghi rõ họ tên)</em>            <div class="signature-space"></div>        </div>        <div class="signature-box">            <strong>Số vỏ trả / Nhân viên</strong>            <em>(Ký, ghi rõ họ tên)</em>            <div class="signature-space"></div>        </div>    </div>
+    <div class="client-info">
+        <div class="client-row">
+            <label>Khách Hàng:</label>
+            <select id="selectKhachHang" onchange="capNhatThongTin()">
+                <option value="">-- Chưa có dữ liệu / Hãy chọn file --</option>
+            </select>
+            <input type="text" id="searchPhone" placeholder="Gõ 6 số cuối ĐT để tìm..." oninput="timKiemKhachHang()">
+        </div>
+        <div class="client-row">
+            <label>Địa Chỉ:</label>
+            <span id="diachi">...</span>
+        </div>
+        <div class="client-row">
+            <label>Điện thoại:</label>
+            <span id="sdt">...</span>
+        </div>
+    </div>
 
-        <div class="payment-container">        <div class="bank-info">            <strong>Mã khách hàng: NR-04382</strong><br>            Chuyển khoản với nội dung: Mã khách hàng<br>            TK: LÊ TRỌNG HÙNG - ACB - 37392987        </div>        <div class="qr-box">            <img id="bankQR" src="" alt="Mã QR Chuyển Khoản">        </div>    </div></div>
+    <div class="btn-action-container">
+        <button class="btn-add-row" onclick="themDongMoi()">➕ Thêm dòng hàng hóa</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 6%;">STT</th>
+                <th style="width: 35%;">TÊN HÀNG HÓA</th>
+                <th style="width: 12%;">ĐV</th>
+                <th style="width: 10%;">SL</th>
+                <th style="width: 15%;">ĐƠN GIÁ</th>
+                <th style="width: 14%;">THÀNH TIỀN</th>
+                <th style="width: 8%;" class="col-delete-header">XÓA</th>
+            </tr>
+        </thead>
+        <tbody id="danhSachHangHoaBody">
+            <tr>
+                <td class="stt-cell">1</td>
+                <td>
+                    <select>
+                        <option value="viva">VIVA VÒI</option>
+                        <option value="lavie19">LAVIE BÌNH 19L</option>
+                        <option value="aqua500">AQUAFINA CHAI 500ML</option>
+                        <option value="aqua350">AQUAFINA CHAI 350ML</option>
+                        <option value="aqua15">AQUAFINA CHAI 1.5L</option>
+                        <option value="dasani500">DASANI CHAI 500ML</option>
+                        <option value="th19">TH TRUE WATER BÌNH 19L</option>
+                        <option value="th500">TH TRUE WATER CHAI 500ML</option>
+                        <option value="coca">COCA-COLA LON 320ML</option>
+                        <option value="pepsi">PEPSI LON 320ML</option>
+                        <option value="danang">NƯỚC KHOÁNG ĐÀ NẴNG CHAI</option>
+                    </select>
+                </td>
+                <td><input type="text" class="txt-dv" value="BÌNH"></td>
+                <td>
+                    <input type="number" class="txt-soluong" value="1" min="1" oninput="tinhToanToanBo()" onchange="tinhToanToanBo()">
+                </td>
+                <td>
+                    <select class="select-dongia" onchange="tinhToanToanBo()">
+                        <option value="73000">73.000</option>
+                        <option value="50000">50.000</option>
+                        <option value="55000">55.000</option>
+                        <option value="60000">60.000</option>
+                        <option value="65000">65.000</option>
+                        <option value="80000">80.000</option>
+                        <option value="90000">90.000</option>
+                        <option value="100000">100.000</option>
+                    </select>
+                </td>
+                <td class="thanh-tien-cell">73.000</td>
+                <td class="col-delete">
+                    <button class="btn-delete" onclick="xoaDong(this)">❌</button>
+                </td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="5" style="text-align: right; font-weight: bold; color: #1a365d;">TỔNG CỘNG THANH TOÁN:</td>
+                <td id="tongCongTatCa" style="color: #dc3545; font-weight: bold;">73.000</td>
+                <td class="col-delete"></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="footer-section">
+        <div class="signature-box">
+            <strong>Người lập phiếu</strong>
+            <em>(Ký, ghi rõ họ tên)</em>
+            <div class="signature-space"></div>
+        </div>
+        <div class="signature-box">
+            <strong>Số vỏ trả / Nhân viên</strong>
+            <em>(Ký, ghi rõ họ tên)</em>
+            <div class="signature-space"></div>
+        </div>
+    </div>
+
+    <div class="payment-container">
+        <div class="bank-info">
+            <strong>Mã khách hàng: NR-04382</strong><br>
+            Chuyển khoản với nội dung: Mã khách hàng<br>
+            TK: LÊ TRỌNG HÙNG - ACB - 37392987
+        </div>
+        <div class="qr-box">
+            <img id="bankQR" src="" alt="Mã QR Chuyển Khoản">
+        </div>
+    </div>
+
+</div>
 
 <script>
-    // Mảng dữ liệu 3 khách hàng gốc của bạn
-    const khachHang = [
-        { ten: "Trần Thanh Tín", dc: "6/152 Nguyễn An Ninh", sdt: "0369481451" },
-        { ten: "Nguyễn Văn A", dc: "Số 10, Khâm Thiên", sdt: "0901234567" },
-        { ten: "Lê Thị B", dc: "Tòa nhà CT1, Mỹ Đình", sdt: "0987654321" }
-    ];
+    let danhSachKhachHang = [];
 
-    // Hàm an toàn khởi tạo đưa danh sách vào thẻ select
-    function khoiTaoDanhSach() {
+    // Hàm đọc file dữ liệu Excel danh sách khách hàng
+    function docFileExcel(input) {
+        const file = input.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+            
+            danhSachKhachHang = json.map(item => {
+                return {
+                    ten: item.ten || item["Họ tên"] || item["Khách hàng"] || "Không rõ tên",
+                    dc: item.dc || item["Địa chỉ"] || "Không rõ địa chỉ",
+                    sdt: String(item.sdt || item["Số điện thoại"] || item["Điện thoại"] || "").trim()
+                };
+            });
+            
+            if(danhSachKhachHang.length > 0) {
+                document.getElementById("statusExcel").innerText = `✅ Đã nạp thành công ${danhSachKhachHang.length} khách hàng!`;
+                napVaoThheSelect();
+            } else {
+                alert("File Excel không có dữ liệu hoặc sai định dạng cột!");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // Đẩy dữ liệu khách hàng vào ô chọn Dropdown
+    function napVaoThheSelect() {
         const select = document.getElementById("selectKhachHang");
         select.innerHTML = '<option value="">-- Chọn khách hàng --</option>';
-        khachHang.forEach((kh, i) => {
+        
+        danhSachKhachHang.forEach((kh, i) => {
             const opt = document.createElement("option");
             opt.value = i;
             opt.textContent = kh.ten;
@@ -37,43 +517,133 @@
         });
     }
 
-    // Hàm cập nhật hiển thị địa chỉ & sđt
+    // Cập nhật thông tin địa chỉ, SĐT khi chọn khách hàng
     function capNhatThongTin() {
         const select = document.getElementById("selectKhachHang");
         const i = select.value;
-        if(i !== "") {
-            document.getElementById("diachi").innerText = khachHang[i].dc;
-            document.getElementById("sdt").innerText = khachHang[i].sdt;
+        
+        if(i !== "" && danhSachKhachHang[i]) {
+            document.getElementById("diachi").innerText = danhSachKhachHang[i].dc;
+            document.getElementById("sdt").innerText = danhSachKhachHang[i].sdt;
         } else {
             document.getElementById("diachi").innerText = "...";
             document.getElementById("sdt").innerText = "...";
         }
     }
 
-    // Hàm gõ nhanh 6 số đuôi điện thoại
+    // Tìm kiếm khách hàng nhanh bằng 6 số cuối điện thoại
     function timKiemKhachHang() {
         const val = document.getElementById("searchPhone").value.trim();
         const select = document.getElementById("selectKhachHang");
+        
+        if(danhSachKhachHang.length === 0) {
+            alert("Vui lòng nạp file danh sách Excel trước khi tìm kiếm!");
+            document.getElementById("searchPhone").value = "";
+            return;
+        }
+        
         if(val.length === 6) {
-            const index = khachHang.findIndex(kh => kh.sdt.endsWith(val));
+            const index = danhSachKhachHang.findIndex(kh => kh.sdt.endsWith(val));
             if(index !== -1) {
-                select.value = index; 
-                capNhatThongTin(); 
+                select.value = index;
+                capNhatThongTin();
             } else {
                 alert("Không tìm thấy khách hàng nào khớp với 6 số đuôi này!");
             }
         }
     }
 
-    // Hàm tính tiền động cho mã QR
-    function capNhatQRTheoThanhTien() {
-        let textTien = document.getElementById("thanhTienRow").innerText;
-        let soTienHienTai = textTien.replace(/\./g, '').trim();
-        document.getElementById("bankQR").src = `https://img.vietqr.io/image/ACB-37392987-qr_only.png?amount=${soTienHienTai}&addInfo=NR-04382`;
+    // Hàm tạo thêm một dòng hàng hóa mới động
+    function themDongMoi() {
+        const tbody = document.getElementById("danhSachHangHoaBody");
+        const newRow = document.createElement("tr");
+        
+        newRow.innerHTML = `
+            <td class="stt-cell"></td>
+            <td>
+                <select>
+                    <option value="viva">VIVA VÒI</option>
+                    <option value="lavie19">LAVIE BÌNH 19L</option>
+                    <option value="aqua500">AQUAFINA CHAI 500ML</option>
+                    <option value="aqua350">AQUAFINA CHAI 350ML</option>
+                    <option value="aqua15">AQUAFINA CHAI 1.5L</option>
+                    <option value="dasani500">DASANI CHAI 500ML</option>
+                    <option value="th19">TH TRUE WATER BÌNH 19L</option>
+                    <option value="th500">TH TRUE WATER CHAI 500ML</option>
+                    <option value="coca">COCA-COLA LON 320ML</option>
+                    <option value="pepsi">PEPSI LON 320ML</option>
+                    <option value="danang">NƯỚC KHOÁNG ĐÀ NẴNG CHAI</option>
+                </select>
+            </td>
+            <td><input type="text" class="txt-dv" value="BÌNH"></td>
+            <td>
+                <input type="number" class="txt-soluong" value="1" min="1" oninput="tinhToanToanBo()" onchange="tinhToanToanBo()">
+            </td>
+            <td>
+                <select class="select-dongia" onchange="tinhToanToanBo()">
+                    <option value="73000">73.000</option>
+                    <option value="50000">50.000</option>
+                    <option value="55000">55.000</option>
+                    <option value="60000">60.000</option>
+                    <option value="65000">65.000</option>
+                    <option value="80000">80.000</option>
+                    <option value="90000">90.000</option>
+                    <option value="100000">100.000</option>
+                </select>
+            </td>
+            <td class="thanh-tien-cell">73.000</td>
+            <td class="col-delete">
+                <button class="btn-delete" onclick="xoaDong(this)">❌</button>
+            </td>
+        `;
+        tbody.appendChild(newRow);
+        tinhToanToanBo();
     }
 
-    // Kích hoạt toàn bộ tính năng khi trang tải xong
-    khoiTaoDanhSach();
-    capNhatQRTheoThanhTien();
+    // Hàm xóa bỏ dòng hàng hóa được chỉ định
+    function xoaDong(button) {
+        const row = button.closest("tr");
+        row.remove();
+        tinhToanToanBo();
+    }
+
+    // HÀM TÍNH TOÁN REAL-TIME & ĐỔI MÃ QR TỰ ĐỘNG
+    function tinhToanToanBo() {
+        const rows = document.querySelectorAll("#danhSachHangHoaBody tr");
+        let tongCongTatCa = 0;
+        
+        rows.forEach((row, index) => {
+            // Tự động cập nhật STT liên tục
+            row.querySelector(".stt-cell").innerText = index + 1;
+            
+            // Lấy giá trị số lượng
+            let slInput = row.querySelector(".txt-soluong");
+            let sl = parseInt(slInput.value);
+            if (isNaN(sl) || sl < 1) sl = 1;
+            
+            // Lấy giá trị đơn giá từ dropdown chọn
+            let dg = parseInt(row.querySelector(".select-dongia").value) || 0;
+            
+            // Nhân tính thành tiền từng dòng
+            let thanhTien = sl * dg;
+            tongCongTatCa += thanhTien;
+            
+            // Đưa định dạng dấu chấm phân cách vào cột thành tiền
+            row.querySelector(".thanh-tien-cell").innerText = thanhTien.toLocaleString('vi-VN');
+        });
+        
+        // Cập nhật tổng số tiền cuối cùng ở chân bảng
+        document.getElementById("tongCongTatCa").innerText = tongCongTatCa.toLocaleString('vi-VN');
+        
+        // Làm mới link ảnh VietQR đồng bộ số tiền
+        document.getElementById("bankQR").src = `https://img.vietqr.io/image/ACB-37392987-qr_only.png?amount=${tongCongTatCa}&addInfo=NR-04382`;
+    }
+
+    // Chạy kích hoạt tính tiền lần đầu khi tải xong trang
+    window.onload = function() {
+        tinhToanToanBo();
+    };
 </script>
-</body></html>
+
+</body>
+</html>
