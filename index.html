@@ -2,9 +2,20 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Phiếu Bán Hàng - Định Dạng SĐT xxxx.xxx.xxx</title>
+    <title>Phiếu Bán Hàng - Nhím Kon</title>
     
+    <!-- Thư viện đọc file Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Khối CSS động để ép cấu hình máy in -->
+    <style id="printSettingsStyle">
+        @media print {
+            @page {
+                size: A5 portrait;
+                margin: 5mm;
+            }
+        }
+    </style>
     
     <style>
         body {
@@ -24,6 +35,12 @@
             background: #fff;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             border-radius: 8px;
+            transition: max-width 0.3s ease;
+        }
+        
+        /* Khi xem trước chế độ in ngang trên máy tính */
+        .invoice-box.landscape-preview {
+            max-width: 1100px;
         }
         
         .config-section {
@@ -118,6 +135,41 @@
             background-color: #2b6cb0;
         }
         
+        /* THANH ĐIỀU KHIỂN CHỌN KHỔ GIẤY TRÊN WEB */
+        .print-controls {
+            background: #fffaf0;
+            border: 1px solid #feebc8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .print-controls label {
+            font-weight: bold;
+            color: #dd6b20;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .control-group select {
+            padding: 6px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.95em;
+            background-color: #fff;
+            cursor: pointer;
+            outline: none;
+        }
+        
         .header-section {
             display: flex;
             justify-content: space-between;
@@ -196,11 +248,6 @@
             width: 220px;
             border: 1px solid #3182ce;
             background: #ebf8ff;
-        }
-        
-        .client-row span {
-            color: #2d3748;
-            font-weight: 500;
         }
         
         table {
@@ -379,12 +426,10 @@
             background-color: #2b6cb0;
         }
         
-        /* ĐỊNH DẠNG RIÊNG CHO MÁY IN KHỔ GIẤY A5 */
+        /* --------------------------------------------------- */
+        /* ĐỊNH DẠNG CHUNG KHI LỆNH IN HOẠT ĐỘNG */
+        /* --------------------------------------------------- */
         @media print {
-            @page {
-                size: A5 portrait;
-                margin: 5mm;
-            }
             body {
                 background-color: #fff;
                 margin: 0;
@@ -396,7 +441,8 @@
                 padding: 0;
                 max-width: 100% !important;
             }
-            .config-section, #searchPhone, .print-button-container, .btn-action-container, .col-delete, .col-delete-header {
+            /* Ẩn sạch các thanh công cụ điều khiển khi in */
+            .config-section, .print-controls, #searchPhone, .print-button-container, .btn-action-container, .col-delete, .col-delete-header {
                 display: none !important;
             }
             select, input {
@@ -425,12 +471,13 @@
 </head>
 <body>
 
-<div class="invoice-box">
+<div class="invoice-box" id="invoiceMainBox">
 
+    <!-- QUẢN LÝ KHÁCH HÀNG -->
     <div class="config-section">
         <div class="upload-section">
             <div class="upload-left">
-                <label for="excelFile">📂 Cách 1: Nạp file khách hàng (Excel):</label>
+                <label for="excelFile">📂 Nạp file khách hàng (Excel):</label>
                 <input type="file" id="excelFile" accept=".xlsx, .xls" onchange="docFileExcel(this)">
                 <span id="statusExcel" style="color: #38a169; font-weight: bold; font-size: 0.9em;"></span>
             </div>
@@ -438,20 +485,43 @@
         </div>
         
         <div class="manual-customer-section">
-            <h4>✍️ Cách 2: Nhập trực tiếp khách hàng mới vào danh sách:</h4>
+            <h4>✍️ Nhập thủ công khách hàng mới:</h4>
             <div class="manual-input-group">
                 <input type="text" id="inputTenKH" placeholder="Tên khách hàng" style="width: 180px;">
                 <input type="text" id="inputSdtKH" placeholder="Số điện thoại" style="width: 130px;" oninput="xuLyFormatInputSdt(this)" maxlength="12">
                 <input type="text" id="inputDiachiKH" placeholder="Địa chỉ giao hàng" style="width: 240px;">
-                <button class="btn-save-customer" onclick="themKhachHangTructTiep()">➕ Thêm vào danh sách</button>
+                <button class="btn-save-customer" onclick="themKhachHangTructTiep()">➕ Thêm mới</button>
             </div>
         </div>
     </div>
 
-    <div class="print-button-container">
-        <button class="btn-print" onclick="window.print()">🖨️ In Hóa Đơn (Khổ A5)</button>
+    <!-- KHỐI TÙY CHỌN KHỔ GIẤY KHI BẤM IN -->
+    <div class="print-controls">
+        <label>⚙️ CẤU HÌNH TRANG IN:</label>
+        
+        <div class="control-group">
+            <span>Khổ giấy:</span>
+            <select id="paperSizeSelect" onchange="apDungCauHinhIn()">
+                <option value="A5">Giấy A5 (Nhỏ gọn)</option>
+                <option value="A4">Giấy A4 (Khổ to)</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <span>Chiều hướng giấy:</span>
+            <select id="paperOrientationSelect" onchange="apDungCauHinhIn()">
+                <option value="portrait">In Dọc (Thẳng đứng)</option>
+                <option value="landscape">In Ngang (Nằm ngang)</option>
+            </select>
+        </div>
+        <span style="font-size: 0.85em; color: #718096; font-style: italic;">(Lựa chọn của bạn sẽ được tự động đồng bộ sang máy in)</span>
     </div>
 
+    <div class="print-button-container">
+        <button class="btn-print" id="btnPrintText" onclick="kichHoatLenhIn()">🖨️ In Hóa Đơn</button>
+    </div>
+
+    <!-- Thông tin công ty -->
     <div class="header-section">
         <div class="company-info">
             <strong>Cty TNHH TMDV Nhím Kon - Nhà Phân Phối Lavie Hùng Liên</strong><br>
@@ -465,13 +535,14 @@
         </div>
     </div>
 
+    <!-- Khách hàng -->
     <div class="client-info">
         <div class="client-row">
             <label>Khách Hàng:</label>
             <select id="selectKhachHang" onchange="capNhatThongTin()">
                 <option value="">-- Chưa có dữ liệu / Hãy chọn file --</option>
             </select>
-            <input type="text" id="searchPhone" placeholder="Gõ số đuôi để tìm nhanh..." oninput="xuLyFormatInputSdt(this); timKiemKhachHang();" maxlength="12">
+            <input type="text" id="searchPhone" placeholder="Gõ số đuôi tìm nhanh..." oninput="xuLyFormatInputSdt(this); timKiemKhachHang();" maxlength="12">
         </div>
         <div class="client-row">
             <label>Địa Chỉ:</label>
@@ -484,7 +555,7 @@
     </div>
 
     <div class="btn-action-container">
-        <button class="btn-add-row" onclick="themDongMoi()">➕ Thêm dòng hàng hóa</button>
+        <button class="btn-add-row" onclick="themDongMoi()">➕ Thêm hàng hóa</button>
     </div>
 
     <table>
@@ -514,12 +585,11 @@
                         <option value="th500">TH TRUE WATER CHAI 500ML</option>
                         <option value="coca">COCA-COLA LON 320ML</option>
                         <option value="pepsi">PEPSI LON 320ML</option>
-                        <option value="danang">NƯỚC KHOÁNG ĐÀ NẴNG CHAI</option>
                     </select>
                 </td>
                 <td><input type="text" class="txt-dv" value="BÌNH"></td>
                 <td>
-                    <input type="number" class="txt-soluong" value="1" min="1" oninput="tinhToanToanBo()" onchange="tinhToanToanBo()">
+                    <input type="number" class="txt-soluong" value="1" min="1" oninput="tinhToanToanBo()">
                 </td>
                 <td>
                     <select class="select-dongia" onchange="tinhToanToanBo()">
@@ -528,9 +598,6 @@
                         <option value="55000">55.000</option>
                         <option value="60000">60.000</option>
                         <option value="65000">65.000</option>
-                        <option value="80000">80.000</option>
-                        <option value="90000">90.000</option>
-                        <option value="100000">100.000</option>
                     </select>
                 </td>
                 <td class="thanh-tien-cell">73.000</td>
@@ -571,28 +638,66 @@
             <img id="bankQR" src="" alt="Mã QR Chuyển Khoản">
         </div>
     </div>
-
 </div>
 
 <script>
     let danhSachKhachHang = [];
 
-    // HÀM MỚI: Chỉ nhận số và tự động định dạng thành xxxx.xxx.xxx khi gõ
-    function formatSdtChuoi(rawText) {
-        // Loại bỏ mọi ký tự không phải là số
-        let chuoiSo = rawText.replace(/\D/g, '');
+    // HÀM ÉP CẤU HÌNH TRANG IN THEO LỰA CHỌN
+    function apDungCauHinhIn() {
+        const size = document.getElementById("paperSizeSelect").value;
+        const orientation = document.getElementById("paperOrientationSelect").value;
+        const styleTag = document.getElementById("printSettingsStyle");
+        const mainBox = document.getElementById("invoiceMainBox");
+        const btnPrintText = document.getElementById("btnPrintText");
         
-        // Thêm dấu chấm theo đúng quy luật xxxx.xxx.xxx
-        if (chuoiSo.length <= 4) {
-            return chuoiSo;
-        } else if (chuoiSo.length <= 7) {
-            return chuoiSo.slice(0, 4) + '.' + chuoiSo.slice(4);
+        // Ghi đè CSS cho lệnh in @page
+        styleTag.innerHTML = `
+            @media print {
+                @page {
+                    size: ${size} ${orientation};
+                    margin: 5mm;
+                }
+            }
+        `;
+        
+        // Co giãn xem trước trên máy tính
+        if(orientation === 'landscape') {
+            mainBox.classList.add('landscape-preview');
         } else {
-            return chuoiSo.slice(0, 4) + '.' + chuoiSo.slice(4, 7) + '.' + chuoiSo.slice(7, 10);
+            mainBox.classList.remove('landscape-preview');
         }
+        
+        let txtSize = size === 'A5' ? 'Khổ A5' : 'Khổ A4';
+        let txtOrient = orientation === 'portrait' ? 'Dọc' : 'Ngang';
+        btnPrintText.innerText = `🖨️ Xuất Lệnh In (${txtSize} ${txtOrient})`;
+        
+        localStorage.setItem("print_cfg_size", size);
+        localStorage.setItem("print_cfg_orient", orientation);
     }
 
-    // Kích hoạt định dạng trực tiếp trên ô Input
+    function kichHoatLenhIn() {
+        apDungCauHinhIn();
+        setTimeout(() => {
+            window.print();
+        }, 50);
+    }
+
+    function taiCauHinhInCu() {
+        const s = localStorage.getItem("print_cfg_size");
+        const o = localStorage.getItem("print_cfg_orient");
+        if(s) document.getElementById("paperSizeSelect").value = s;
+        if(o) document.getElementById("paperOrientationSelect").value = o;
+        apDungCauHinhIn();
+    }
+
+    function formatSdtChuoi(rawText) {
+        let chuoiSo = rawText.replace(/\D/g, '');
+        if (chuoiSo.length <= 4) return chuoiSo;
+        if (chuoiSo.length <= 7) return chuoiSo.slice(0, 4) + '.' + chuoiSo.slice(4);
+        return chuoiSo.slice(0, 4) + '.' + chuoiSo.slice(4, 7) + '.' + chuoiSo.slice(7, 10);
+    }
+
     function xuLyFormatInputSdt(inputElement) {
         inputElement.value = formatSdtChuoi(inputElement.value);
     }
@@ -601,220 +706,140 @@
         const duLieuLuuTru = localStorage.getItem("db_khach_hang");
         if (duLieuLuuTru) {
             danhSachKhachHang = JSON.parse(duLieuLuuTru);
-            document.getElementById("statusExcel").innerText = `♻️ Tự động nạp lại ${danhSachKhachHang.length} khách hàng từ bộ nhớ máy!`;
+            document.getElementById("statusExcel").innerText = `♻️ Đã tải lại ${danhSachKhachHang.length} khách hàng!`;
             capNhatDuLieuVaoSelect();
         }
     }
 
     function xoaSachLocalStorage() {
-        if(confirm("Bạn có chắc chắn muốn xóa toàn bộ danh sách khách hàng hiện tại không?")) {
+        if(confirm("Xóa toàn bộ danh sách khách hàng lưu trong máy?")) {
             localStorage.removeItem("db_khach_hang");
             danhSachKhachHang = [];
             capNhatDuLieuVaoSelect();
             capNhatThongTin();
-            document.getElementById("statusExcel").innerText = "🧹 Đã xóa sạch bộ nhớ khách hàng.";
+            document.getElementById("statusExcel").innerText = "🧹 Đã xóa sạch.";
         }
     }
 
     function docFileExcel(input) {
         const file = input.files[0];
         if (!file) return;
-        
         const reader = new FileReader();
         reader.onload = function(e) {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const json = XLSX.utils.sheet_to_json(worksheet);
             
             danhSachKhachHang = json.map(item => {
-                let tenGoc = item["ten"] || item["Họ tên"] || item["Khách hàng"] || "";
-                let sdtTho = String(item["Số điện thoại"] || item["Điện thoại"] || item["sdt"] || item["SĐT"] || "");
-                
-                // Chuẩn hóa số điện thoại Excel về định dạng dấu chấm đẹp xxxx.xxx.xxx
-                let sdtDinhDang = formatSdtChuoi(sdtTho);
-                let diaChiGoc = item["Địa chỉ"] || item["diachi"] || item["Địa Chỉ"] || item["dc"] || "Không rõ địa chỉ";
-                
-                if (!tenGoc && sdtDinhDang) {
-                    tenGoc = "SĐT: " + sdtDinhDang;
-                } else if (!tenGoc) {
-                    tenGoc = "Khách hàng mới";
-                }
-                
-                return {
-                    ten: tenGoc,
-                    dc: diaChiGoc,
-                    sdt: sdtDinhDang
-                };
+                let tenGoc = item["ten"] || item["Họ tên"] || item["Khách hàng"] || "Khách hàng mới";
+                let sdtTho = String(item["Số điện thoại"] || item["Điện thoại"] || item["sdt"] || "");
+                return { ten: tenGoc, dc: item["Địa chỉ"] || "Không rõ địa chỉ", sdt: formatSdtChuoi(sdtTho) };
             });
             
-            if(danhSachKhachHang.length > 0) {
-                localStorage.setItem("db_khach_hang", JSON.stringify(danhSachKhachHang));
-                document.getElementById("statusExcel").innerText = `✅ Đã nạp & định dạng thành công ${danhSachKhachHang.length} khách hàng!`;
-                capNhatDuLieuVaoSelect();
-            } else {
-                alert("Không đọc được dữ liệu phù hợp từ file Excel!");
-            }
+            localStorage.setItem("db_khach_hang", JSON.stringify(danhSachKhachHang));
+            document.getElementById("statusExcel").innerText = `✅ Đã nạp thành công ${danhSachKhachHang.length} KH!`;
+            capNhatDuLieuVaoSelect();
         };
         reader.readAsArrayBuffer(file);
     }
 
     function themKhachHangTructTiep() {
         const txtTen = document.getElementById("inputTenKH").value.trim();
-        const txtSdt = document.getElementById("inputSdtKH").value.trim(); // Đã được format sẵn lúc gõ
+        const txtSdt = document.getElementById("inputSdtKH").value.trim();
         const txtDiaChi = document.getElementById("inputDiachiKH").value.trim();
         
         if (!txtTen || !txtSdt || !txtDiaChi) {
-            alert("Vui lòng điền đầy đủ cả 3 thông tin: Tên, SĐT, Địa chỉ!");
+            alert("Vui lòng nhập đủ thông tin!");
             return;
         }
         
-        const khachHangMoi = {
-            ten: txtTen,
-            dc: txtDiaChi,
-            sdt: txtSdt
-        };
-        
-        danhSachKhachHang.push(khachHangMoi);
+        danhSachKhachHang.push({ ten: txtTen, dc: txtDiaChi, sdt: txtSdt });
         localStorage.setItem("db_khach_hang", JSON.stringify(danhSachKhachHang));
         capNhatDuLieuVaoSelect();
-        
-        const select = document.getElementById("selectKhachHang");
-        select.value = danhSachKhachHang.length - 1;
+        document.getElementById("selectKhachHang").value = danhSachKhachHang.length - 1;
         capNhatThongTin();
-        
-        document.getElementById("inputTenKH").value = "";
-        document.getElementById("inputSdtKH").value = "";
-        document.getElementById("inputDiachiKH").value = "";
     }
 
     function capNhatDuLieuVaoSelect() {
         const select = document.getElementById("selectKhachHang");
-        select.innerHTML = '<option value="">-- Chọn khách hàng trong danh sách --</option>';
-        
+        select.innerHTML = '<option value="">-- Chọn khách hàng --</option>';
         danhSachKhachHang.forEach((kh, i) => {
             const opt = document.createElement("option");
-            opt.value = i;
-            opt.textContent = `${kh.ten} - ${kh.sdt}`;
+            opt.value = i; opt.textContent = `${kh.ten} - ${kh.sdt}`;
             select.appendChild(opt);
         });
     }
 
     function capNhatThongTin() {
-        const select = document.getElementById("selectKhachHang");
-        const i = select.value;
-        
-        if(i !== "" && danhSachKhachHang[i]) {
-            document.getElementById("diachi").innerText = danhSachKhachHang[i].dc;
-            document.getElementById("sdt").innerText = danhSachKhachHang[i].sdt;
+        const idx = document.getElementById("selectKhachHang").value;
+        if(idx !== "" && danhSachKhachHang[idx]) {
+            document.getElementById("diachi").innerText = danhSachKhachHang[idx].dc;
+            document.getElementById("sdt").innerText = danhSachKhachHang[idx].sdt;
         } else {
             document.getElementById("diachi").innerText = "...";
             document.getElementById("sdt").innerText = "...";
         }
     }
 
-    // SỬA HÀM TÌM KIẾM: Loại bỏ dấu chấm tạm thời khi đối chiếu để tìm đuôi mượt mà nhất
     function timKiemKhachHang() {
-        let val = document.getElementById("searchPhone").value.replace(/\D/g, ''); // Bỏ hết dấu chấm để lấy chuỗi số thô
-        const select = document.getElementById("selectKhachHang");
-        
-        if(danhSachKhachHang.length === 0 || val.length < 3) {
-            return; 
-        }
-        
-        // Tìm kiếm thông minh bằng cách bỏ mọi dấu chấm trong database để so khớp chuỗi số đuôi bạn nhập
-        const index = danhSachKhachHang.findIndex(kh => {
-            let sdtThoTrongDb = kh.sdt.replace(/\D/g, '');
-            return sdtThoTrongDb.endsWith(val);
-        });
-        
-        if(index !== -1) {
-            select.value = index;
+        let val = document.getElementById("searchPhone").value.replace(/\D/g, '');
+        if(val.length < 3) return;
+        const idx = danhSachKhachHang.findIndex(kh => kh.sdt.replace(/\D/g, '').endsWith(val));
+        if(idx !== -1) {
+            document.getElementById("selectKhachHang").value = idx;
             capNhatThongTin();
         }
     }
 
     function themDongMoi() {
         const tbody = document.getElementById("danhSachHangHoaBody");
-        const newRow = document.createElement("tr");
-        
-        newRow.innerHTML = `
+        const r = document.createElement("tr");
+        r.innerHTML = `
             <td class="stt-cell"></td>
             <td>
                 <select>
                     <option value="viva">VIVA VÒI</option>
                     <option value="lavie19">LAVIE BÌNH 19L</option>
                     <option value="aqua500">AQUAFINA CHAI 500ML</option>
-                    <option value="aqua350">AQUAFINA CHAI 350ML</option>
-                    <option value="aqua15">AQUAFINA CHAI 1.5L</option>
-                    <option value="dasani500">DASANI CHAI 500ML</option>
-                    <option value="th19">TH TRUE WATER BÌNH 19L</option>
-                    <option value="th500">TH TRUE WATER CHAI 500ML</option>
-                    <option value="coca">COCA-COLA LON 320ML</option>
-                    <option value="pepsi">PEPSI LON 320ML</option>
-                    <option value="danang">NƯỚC KHOÁNG ĐÀ NẴNG CHAI</option>
                 </select>
             </td>
             <td><input type="text" class="txt-dv" value="BÌNH"></td>
-            <td>
-                <input type="number" class="txt-soluong" value="1" min="1" oninput="tinhToanToanBo()" onchange="tinhToanToanBo()">
-            </td>
+            <td><input type="number" class="txt-soluong" value="1" min="1" oninput="tinhToanToanBo()"></td>
             <td>
                 <select class="select-dongia" onchange="tinhToanToanBo()">
                     <option value="73000">73.000</option>
                     <option value="50000">50.000</option>
-                    <option value="55000">55.000</option>
-                    <option value="60000">60.000</option>
-                    <option value="65000">65.000</option>
-                    <option value="80000">80.000</option>
-                    <option value="90000">90.000</option>
-                    <option value="100000">100.000</option>
                 </select>
             </td>
-            <td class="thanh-tien-cell">73.000</td>
-            <td class="col-delete">
-                <button class="btn-delete" onclick="xoaDong(this)">❌</button>
-            </td>
+            <td class="thanh-tien-cell">0</td>
+            <td class="col-delete"><button class="btn-delete" onclick="xoaDong(this)">❌</button></td>
         `;
-        tbody.appendChild(newRow);
+        tbody.appendChild(r);
         tinhToanToanBo();
     }
 
-    function xoaDong(button) {
-        const row = button.closest("tr");
-        row.remove();
-        tinhToanToanBo();
-    }
+    function xoaDong(btn) { btn.closest("tr").remove(); tinhToanToanBo(); }
 
     function tinhToanToanBo() {
         const rows = document.querySelectorAll("#danhSachHangHoaBody tr");
-        let tongCongTatCa = 0;
-        
-        rows.forEach((row, index) => {
-            row.querySelector(".stt-cell").innerText = index + 1;
-            
-            let slInput = row.querySelector(".txt-soluong");
-            let sl = parseInt(slInput.value);
-            if (isNaN(sl) || sl < 1) sl = 1;
-            
+        let tong = 0;
+        rows.forEach((row, i) => {
+            row.querySelector(".stt-cell").innerText = i + 1;
+            let sl = parseInt(row.querySelector(".txt-soluong").value) || 1;
             let dg = parseInt(row.querySelector(".select-dongia").value) || 0;
-            
-            let thanhTien = sl * dg;
-            tongCongTatCa += thanhTien;
-            
-            row.querySelector(".thanh-tien-cell").innerText = thanhTien.toLocaleString('vi-VN');
+            let tt = sl * dg; tong += tt;
+            row.querySelector(".thanh-tien-cell").innerText = tt.toLocaleString('vi-VN');
         });
-        
-        document.getElementById("tongCongTatCa").innerText = tongCongTatCa.toLocaleString('vi-VN');
-        document.getElementById("bankQR").src = `https://img.vietqr.io/image/ACB-37392987-qr_only.png?amount=${tongCongTatCa}&addInfo=NR-04382`;
+        document.getElementById("tongCongTatCa").innerText = tong.toLocaleString('vi-VN');
+        document.getElementById("bankQR").src = `https://img.vietqr.io/image/ACB-37392987-qr_only.png?amount=${tong}&addInfo=NR-04382`;
     }
 
     window.onload = function() {
         tinhToanToanBo();
         taiDuLieuTuLocalStorage();
+        taiCauHinhInCu();
     };
 </script>
-
 </body>
 </html>
